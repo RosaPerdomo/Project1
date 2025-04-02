@@ -49,7 +49,7 @@ def ExampleGraph ():
  AddSegment(G, "LF","L","F")
  return G
 G = ExampleGraph()
-
+g = Graph()
 
 def InterfaceGraph():
     ####### base ######
@@ -58,13 +58,12 @@ def InterfaceGraph():
     root.title('Interface')
     root.columnconfigure(0, weight=1)
     root.columnconfigure(1, weight=1)
-    root.columnconfigure(2, weight=1)
     root.rowconfigure(0, weight=1)
     root.rowconfigure(1, weight=3)
     root.rowconfigure(2, weight=3)
     # Select
     select_frame = tk.LabelFrame(root, text = 'Select:')
-    select_frame.grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    select_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     select_frame.rowconfigure(0, weight=1)
     select_frame.rowconfigure(1, weight=1)
@@ -82,12 +81,12 @@ def InterfaceGraph():
     entryNode = tk.Entry(select_frame)
     entryNode.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    entrySelect = tk.Entry(select_frame)
-    entrySelect.grid(row=1, column=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    entrySegment = tk.Entry(select_frame)
+    entrySegment.grid(row=1, column=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     # example graph
     example_graph_frame = tk.LabelFrame(root, text = 'Example Graph')
-    example_graph_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    example_graph_frame.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     example_graph_frame.rowconfigure(0, weight=1)
     example_graph_frame.columnconfigure(0, weight=1)
@@ -100,7 +99,7 @@ def InterfaceGraph():
 
     # Load Graph
     load_graph_frame = tk.LabelFrame(root, text = 'Load Graph')
-    load_graph_frame.grid(row=1, rowspan=2, column=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    load_graph_frame.grid(row=1, rowspan=2, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
     
     load_graph_frame.rowconfigure(0, weight=1)
     load_graph_frame.rowconfigure(1, weight=1)
@@ -110,28 +109,32 @@ def InterfaceGraph():
     LoadGraph = tk.Button(load_graph_frame, text = 'Load Graph from File', command=lambda: PlotFile(entryFile.get()))
     LoadGraph.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    GraphNode = tk.Button(load_graph_frame, text = 'Show Node Neighbors', command=lambda: PlotNode(LoadFile(entryFile.get()), entryNode.get()))
+    GraphNode = tk.Button(load_graph_frame, text = 'Show Node Neighbors', command=lambda: PlotNode(g, entryNode()))
     GraphNode.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    GraphNode = tk.Button(load_graph_frame, text = 'New Graph', command=lambda: PlotFile(entryNode.get()))
+    GraphNode = tk.Button(load_graph_frame, text = 'New Graph', command=lambda: NewGraph(g))
     GraphNode.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    GraphNode = tk.Button(load_graph_frame, text = 'Save Graph', command=lambda: SaveGraph(LoadFile(entryFile.get())))
+    GraphNode = tk.Button(load_graph_frame, text = 'Save Graph', command=lambda: SaveGraph(g))
     GraphNode.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    #Select Node
-    select_node_frame = tk.LabelFrame(root, text = 'Select Node')
-    select_node_frame.grid(row=2, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    #Graph Editing
+    editing_frame = tk.LabelFrame(root, text = 'Edit Graph')
+    editing_frame.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
     
-    select_node_frame.rowconfigure(0, weight=1)
-    select_node_frame.rowconfigure(1, weight=1)
-    select_node_frame.columnconfigure(0, weight=1)
+    editing_frame.rowconfigure(0, weight=1)
+    editing_frame.columnconfigure(0, weight=1)
+    editing_frame.columnconfigure(1, weight=1)
+    editing_frame.columnconfigure(2, weight=1)
 
-    entry2 = tk.Entry(select_node_frame)
-    entry2.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    addnode = tk.Button(editing_frame, text = 'Add Node', command=lambda: AddNode(g, entryNode()))
+    addnode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    button4 = tk.Button(select_node_frame, text = 'Plot', command=lambda: PlotNode(PlotFile(entry1.get()), entry2.get()))
-    button4.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    deletenode = tk.Button(editing_frame, text = 'Delete Node', command=lambda: DeleteNode(g, entryNode()))
+    deletenode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+
+    addnode = tk.Button(editing_frame, text = 'Add Segment', command=lambda: AddSegment(g, entrySegment().split(' ')[0], entrySegment().split(' ')[1], entrySegment().split(' ')[2]))
+    addnode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     root.mainloop()
 

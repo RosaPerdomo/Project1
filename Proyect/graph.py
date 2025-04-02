@@ -9,11 +9,24 @@ class Graph:
         self.segment = []
 
 def AddNode (g, n):
-    for node in g.node:
-        if node.name == n.name:
-            return False
-    g.node.append(n)
-    return True
+    trozos = n.split(' ')
+    if len(trozos) == 3:
+        for node in g.node:
+            n = Node(trozos[0], trozos[1], trozos[2])
+            if node.name == trozos[0]:
+                return False
+        g.node.append(n)
+    return g
+
+def DeleteNode (g, n):
+    newnodes = []
+    len_inicial = len(g.node)
+    for d in g.node:
+        if d.name != n:
+            newnodes.append(d)
+    g.node = newnodes
+    return g
+
 
 def AddSegment (g, segmentName, nameOriginNode, nameDestinationNode):
     nO = False
@@ -122,8 +135,13 @@ def PlotFile(fileName):
     g = LoadFile(fileName)
     Plot(g)
 
+def NewGraph(g):
+    g.node.clear()
+    g.segment.clear()
+    return g
+
 def SaveGraph(g):
-    X = open('New Graph', 'w')
+    X = open('Graph.txt', 'w')
     X.write('Nodes:\n')
     for n in g.node:
         X.write(f'{n.name} {n.x} {n.y}\n')
