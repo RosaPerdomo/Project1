@@ -131,10 +131,10 @@ def InterfaceGraph():
     addnode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     deletenode = tk.Button(editing_frame, text = 'Delete Node', command=lambda: DeleteNode(g, entryNode()))
-    deletenode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    deletenode.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     addnode = tk.Button(editing_frame, text = 'Add Segment', command=lambda: AddSegment(g, entrySegment().split(' ')[0], entrySegment().split(' ')[1], entrySegment().split(' ')[2]))
-    addnode.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    addnode.grid(row=0, column=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     root.mainloop()
 
