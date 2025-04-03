@@ -15,6 +15,40 @@ def AddNode (g, n):
     g.node.append(n)
     return True
 
+def DetectEntry (entryNode):
+    text = entryNode.replace(',', ' ')
+    partes = text.split(' ')
+    if len(partes) == 3:
+        if partes[1].isdigit():
+            name = partes[0]
+            x = float(partes[1])
+            y = float(partes[2])
+            d = Node(name, x, y)
+        elif partes[1].isalpha():
+            d = [partes[0], partes[1], partes[2]]
+    return d
+
+def DeleteSegment (g, s):
+    newsegments = []
+    for d in g.segment:
+        if d.name != s:
+            newsegments.append(d)
+    g.segment = newsegments
+    return g
+
+def DeleteNode (g, n):
+    newnodes = []
+    for d in g.node:
+        if d.name != n:
+            newnodes.append(d)
+    g.node = newnodes
+    newsegments = []
+    for d in g.segment:
+        if d.origin.name != n and d.destination.name != n:
+            newsegments.append(d)
+    g.segment = newsegments
+    return g
+
 def AddSegment (g, segmentName, nameOriginNode, nameDestinationNode):
     nO = False
     nD = False
@@ -47,6 +81,7 @@ def GetClosest (g, x, y):
 def Plot(g):
     for n in g.node:
         plt.plot(n.x ,n.y, 'o', color='red', markersize=3)
+        plt.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
     for s in g.segment:
         plt.arrow(s.origin.x, s.origin.y, s.destination.x - s.origin.x, s.destination.y - s.origin.y, head_width=0.2, head_length=0.3, fc='blue', ec='blue', linewidth=0.5)
         midx = (s.origin.x + s.destination.x) / 2
@@ -65,6 +100,7 @@ def PlotNode(g, nameOrigin):
         if n.name == nameOrigin:
             origin = n
             plt.plot(n.x, n.y, 'o', color='blue', markersize=5)
+            plt.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
             found = True
             break
     if found == False:
@@ -73,6 +109,7 @@ def PlotNode(g, nameOrigin):
     for s in g.segment:
         if s.origin.name == nameOrigin:
             plt.plot(s.destination.x, s.destination.y, 'o', color = 'green', markersize = 3)
+            plt.text(s.destination.x, s.destination.y, f'{s.destination.name}', fontsize=8, color='black')
             plt.arrow(s.origin.x, s.origin.y, s.destination.x - s.origin.x, s.destination.y - s.origin.y, head_width=0.2, head_length=0.3, fc='red', ec='red', linewidth=0.5)
             midx = (s.origin.x + s.destination.x) / 2
             midy = (s.origin.y + s.destination.y) / 2
@@ -82,6 +119,7 @@ def PlotNode(g, nameOrigin):
         for neighbor in origin.neighbors:
             if n != neighbor:
                 plt.plot(n.x, n.y, 'o', color='gray', markersize=3)
+                plt.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
 
     plt.grid(color='grey', linestyle='dashed', linewidth=0.5)
     plt.show()
@@ -122,8 +160,13 @@ def PlotFile(fileName):
     g = LoadFile(fileName)
     Plot(g)
 
+def NewGraph(g):
+    g.node.clear()
+    g.segment.clear()
+    return g
+
 def SaveGraph(g):
-    X = open('New Graph', 'w')
+    X = open('Graph.txt', 'w')
     X.write('Nodes:\n')
     for n in g.node:
         X.write(f'{n.name} {n.x} {n.y}\n')
