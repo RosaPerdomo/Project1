@@ -1,5 +1,5 @@
-from graph import *
 from path import *
+from graph import *
 
 def CreateGraph_1 ():
     G = Graph()
@@ -19,33 +19,41 @@ def CreateGraph_1 ():
     AddSegment(G, "AK","A","K")
     AddSegment(G, "BC","B","C")
     AddSegment(G, "BK","B","K")
-    AddSegment(G, "BG","B","G")
     AddSegment(G, "CG","C","G")
     AddSegment(G, "DG","D","G")
     AddSegment(G, "DH","D","H")
+    AddSegment(G, "DI","D","I")
     AddSegment(G, "EF","E","F")
+    AddSegment(G, "FL","F","L")
     AddSegment(G, "GB","G","B")
     AddSegment(G, "GH","G","H")
     AddSegment(G, "ID","I","D")
     AddSegment(G, "IJ","I","J")
     AddSegment(G, "JI","J","I")
     AddSegment(G, "KA","K","A")
+    AddSegment(G, "KL","K","L")
     AddSegment(G, "LK","L","K")
     AddSegment(G, "LF","L","F")
     return G
-print ("Probando el grafo...")
 G = CreateGraph_1 ()
-Plot(G)
-PlotNode(G, "C")
-n = GetClosest(G,15,5)
-print (n.name) # La respuesta debe ser J
-n = GetClosest(G,8,19)
-print (n.name) # La respuesta debe ser B
 
-print(DetectEntry('A 1 1'))
-print(DetectEntry('AB A B'))
+n1 = G.node[0]  # Nodo A
+n2 = G.node[10]  # Nodo K
+n3 = G.node[2]  # Nodo C
 
+path = Path(n1)
+print("Path creado:", [n.name for n in path.nodes], "Costo:", path.cost)
 
-PlotReachability(G, Reachability(G, 'D'))
+AddNodeToPath(path, n2)
+print("Path después de añadir nodo K:", [n.name for n in path.nodes], "Costo:", path.cost)
 
-PlotPath(G, FindShortestPath(G, 'A', 'F'))
+print("¿Contiene A?", ContainsNode(path, n1))
+print("¿Contiene K?", ContainsNode(path, n2))
+print("¿Contiene C?", ContainsNode(path, n3))
+
+print("Costo hasta A:", CostToNode(path, n1))
+print("Costo hasta K:", CostToNode(path, n2))
+print("Costo hasta C:", CostToNode(path, n3))
+
+print("Mostrando path:")
+PlotPath(G, path)
