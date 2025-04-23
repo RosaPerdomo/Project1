@@ -1,8 +1,0 @@
-Nodes:
-B 8.0 9.0
-C 5.0 2.0
-D 7.0 3.0
-E 2.0 8.0
-Segments:
-BD B D
-CD C D

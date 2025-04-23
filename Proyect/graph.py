@@ -2,13 +2,9 @@ from node import *
 from segment import *
 import matplotlib.pyplot as plt 
 import numpy as np
-<<<<<<< HEAD
-#rosa is not loser
-=======
 import math
 from path import *
 
->>>>>>> 1267b4d (Commit seguro desde carpeta limpia)
 class Graph:
     def __init__ (self):
         self.node = []
