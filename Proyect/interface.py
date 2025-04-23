@@ -7,6 +7,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from node import *
 from segment import *
 from graph import *
+  
+
 
 def ExampleGraph ():
  G = Graph()

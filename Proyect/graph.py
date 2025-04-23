@@ -2,7 +2,7 @@ from node import *
 from segment import *
 import matplotlib.pyplot as plt 
 import numpy as np
-
+#rosa is not loser
 class Graph:
     def __init__ (self):
         self.node = []
