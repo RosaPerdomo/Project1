@@ -41,32 +41,69 @@ def CostToNode (p, node):
         i += 1
     return total
 
-def PlotPath (g, p):
+def PlotPath(g, p, is_geographic=False):
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    if is_geographic:
+        head_size = 0.05
+        node_size_main = 5
+        node_size_secondary = 3
+        font_size = 7
+        path_width = 1.5
+    else:
+        head_size = 0.2
+        node_size_main = 8
+        node_size_secondary = 5
+        font_size = 8
+        path_width = 2
+    
     for n in g.node:
-        plt.plot(n.x, n.y, 'o', color='gray', markersize=3)
-        plt.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
-
-    for n in p.nodes:
-        plt.plot(n.x, n.y, 'o', color='blue', markersize=5)
+        if n in p.nodes:
+            ax.plot(n.x, n.y, 'o', color='blue', markersize=node_size_main)
+            ax.text(n.x, n.y, f'{n.name}', fontsize=font_size+1, color='black',
+                   ha='center', va='center', weight='bold')
+        else:
+            ax.plot(n.x, n.y, 'o', color='gray', markersize=node_size_secondary, alpha=0.5)
+            ax.text(n.x, n.y, f'{n.name}', fontsize=font_size-1, color='gray',
+                   ha='center', va='center', alpha=0.7)
+    
+    for s in g.segment:
+        ax.plot([s.origin.x, s.destination.x],
+               [s.origin.y, s.destination.y],
+               'gray', linewidth=0.3, alpha=0.3)
     
     for i in range(len(p.nodes) - 1):
         origin = p.nodes[i]
         destination = p.nodes[i+1]
+        
+        segment = None
         for s in g.segment:
-            if s.origin == origin and s.destination == destination or s.origin == destination and s.destination == origin:
-                plt.arrow(s.origin.x, s.origin.y, s.destination.x - s.origin.x, s.destination.y - s.origin.y,
-                           head_width=0.2, head_length=0.3, fc='blue', ec='blue', linewidth = 2, length_includes_head=True)
-                midx = (s.origin.x + s.destination.x) / 2
-                midy = (s.origin.y + s.destination.y) / 2
-                plt.text(midx, midy, f'{s.cost} km', fontsize=8, color ='black')
-            else:
-                plt.arrow(s.origin.x, s.origin.y, s.destination.x - s.origin.x, s.destination.y - s.origin.y, 
-                          head_width=0.2, head_length=0.3, fc='gray', ec='gray', linewidth = 0.5, length_includes_head=True)
-                midx = (s.origin.x + s.destination.x) / 2
-                midy = (s.origin.y + s.destination.y) / 2
-                plt.text(midx, midy, f'{s.cost} km', fontsize=8, color ='gray')
+            if (s.origin == origin and s.destination == destination) or \
+               (s.origin == destination and s.destination == origin):
+                segment = s
+                break
+        
+        if segment:
+            ax.arrow(origin.x, origin.y, 
+                    destination.x - origin.x, 
+                    destination.y - origin.y,
+                    head_width=head_size, 
+                    head_length=head_size*1.5,
+                    fc='blue', ec='blue', 
+                    linewidth=path_width, 
+                    length_includes_head=True,
+                    alpha=0.8)
+            
+
+            midx = (origin.x + destination.x)/2
+            midy = (origin.y + destination.y)/2
+            ax.text(midx, midy, f'{segment.cost:.1f} km', 
+                   fontsize=font_size, weight='bold',
+                   ha='center', va='center', color='blue')
     
-    plt.grid(color='grey', linestyle='dashed', linewidth=0.5)
-    plt.xlabel("X")
-    plt.ylabel("Y")
-    plt.show()
+    ax.grid(color='gray', linestyle='dashed', linewidth=0.3, alpha=0.5)
+    ax.set_xlabel("Longitude" if is_geographic else "X")
+    ax.set_ylabel("Latitude" if is_geographic else "Y")
+    ax.set_title(f"Shortest Path Visualization - Total Cost: {round(p.cost, 2)} km")
+    
+    return fig
