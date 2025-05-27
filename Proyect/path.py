@@ -59,7 +59,8 @@ def PlotPath(g, p, is_geographic=False):
     
     for n in g.node:
         if n in p.nodes:
-            ax.plot(n.x, n.y, 'o', color='blue', markersize=node_size_main)
+            c = 'orange' if n.type == 'airport' else 'blue'
+            ax.plot(n.x, n.y, 'o', color=c, markersize=node_size_main)
             ax.text(n.x, n.y, f'{n.name}', fontsize=font_size+1, color='black',
                    ha='center', va='center', weight='bold')
         else:

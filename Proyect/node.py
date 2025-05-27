@@ -5,6 +5,7 @@ class Node:
         self.name = name
         self.x = x
         self.y = y
+        self.type = 'point' #point or airport
         self.neighbors = [] #Node B will be considered a neighbor of A if there is a segment with origin in A and destination in B
 
 def AddNeighbor (n1, n2):

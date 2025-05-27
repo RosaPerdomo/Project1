@@ -3,12 +3,15 @@ from tkinter import simpledialog, messagebox, ttk
 import matplotlib as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+import webbrowser
 
 from node import *
 from segment import *
 from graph import *
 from path import *
 from airSpace import *
+from KML import *
 
 
 def ExampleGraph ():
@@ -46,40 +49,107 @@ def ExampleGraph ():
 G = ExampleGraph()
 g = Graph()
 
+class Tooltip:
+        def __init__(self, widget, text):
+            self.widget = widget
+            self.text = text
+            self.tip_window = None
+            widget.bind("<Enter>", self.show_tip)
+            widget.bind("<Leave>", self.hide_tip)
+
+        def show_tip(self, event=None):
+            if self.tip_window or not self.text:
+                return
+            x = self.widget.winfo_rootx() + 20
+            y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+            self.tip_window = tw = tk.Toplevel(self.widget)
+            tw.wm_overrideredirect(True)  # Sin bordes
+            tw.wm_geometry(f"+{x}+{y}")
+            label = tk.Label(tw, text=self.text, background="#ffffe0", relief="solid", borderwidth=1, font=("Segoe UI", 9))
+            label.pack(ipadx=4, ipady=2)
+
+        def hide_tip(self, event=None):
+            tw = self.tip_window
+            if tw:
+                tw.destroy()
+            self.tip_window = None
+
 def InterfaceGraph():
+    knodes = []
+    ksegments = []
     canvas_widget = None
     current_graph = None
+    reacMode = False
+    global texto_var
+    import tkinter as tk
 
+    def export_to_kml():
+        nonlocal current_graph, knodes, ksegments
+        if knodes and ksegments:
+            file_name = simpledialog.askstring('Save File', 'How do you want to save the KML file?')
+            if file_name:
+                GraphToKML(knodes, ksegments, filename=f'{file_name}.kml')
+            else:
+                return
+            messagebox.showinfo("Success", "Graph exported to KML successfully.")
+            abrir = messagebox.askyesno("Success", "Graph exported to KML successfully.\n Do you want to open the file in Google Earth now?")
+            if abrir:
+                try:
+                    os.startfile(file_name)
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not open the file:\n{e}")
+        else:
+            messagebox.showwarning("Error", "No graph loaded or graph is empty.")
+
+    def refresh_plot(current_graph, reacMode=False, is_geographic=False):
+        nonlocal canvas_widget, knodes, ksegments
+        if canvas_widget:
+            canvas_widget.destroy()
+        fig, gnodes, gsegments = Plot(current_graph, reacMode=reacMode, is_geographic=is_geographic)
+        knodes = gnodes
+        ksegments = gsegments
+        canvas = FigureCanvasTkAgg(fig, master=right_frame)
+        canvas.draw()
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.pack(fill=tk.BOTH, expand=True)
+        right_frame.pack_propagate(False)
+
+    def set_reachability_mode_g():
+        nonlocal reacMode, canvas_widget, current_graph
+        reacMode = not reacMode
+        if reacMode == True:
+            texto_var.set("Click on a node to see its reachability.\nClick on another node to find the shortest path between them.")
+        elif reacMode == False:
+            texto_var.set("Click on a node to see its neighbors.\nClick on any point in the graph to find its closest node.")
+        if current_graph:
+            refresh_plot(current_graph, reacMode=reacMode)
+
+    def set_reachability_mode_a():
+        nonlocal reacMode, canvas_widget, current_graph
+        reacMode = not reacMode
+        if reacMode == True:
+            texto_var.set("Click on a node to see its reachability.\nClick on another node to find the shortest path between them.")
+        elif reacMode == False:
+            texto_var.set("Click on a node to see its neighbors.\nClick on any point in the graph to find its closest node.")
+        if current_graph:
+            refresh_plot(current_graph, reacMode=reacMode, is_geographic=True)
+    
     def show_example():
         nonlocal canvas_widget
         nonlocal current_graph
 
         current_graph = ExampleGraph()
-
-        if canvas_widget:
-            canvas_widget.destroy()
-        
-        fig = Plot(current_graph)  # Usa la nueva función Plot
-        canvas = FigureCanvasTkAgg(fig, master=right_frame)
-        canvas.draw()
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True)
+        texto_var.set("Click on a node to see its neighbors.\nClick on any point in the graph to find its closest node.")
+        refresh_plot(current_graph)
     
     def load_file():
         nonlocal current_graph
         nonlocal canvas_widget
-
+        texto_var.set("Click on a node to see its neighbors.\nClick on any point in the graph to find its closest node.")
         file_name = simpledialog.askstring('Load File', 'File Name:')
-        current_graph = PlotFile(file_name)
-        if Graph:
-            if canvas_widget:
-                canvas_widget.destroy()
-        
-            fig = Plot(current_graph)  # Usa la nueva función Plot
-            canvas = FigureCanvasTkAgg(fig, master=right_frame)
-            canvas.draw()
-            canvas_widget = canvas.get_tk_widget()
-            canvas_widget.pack(fill=tk.BOTH, expand=True)
+        current_graph = LoadFile(file_name)
+        if current_graph:
+            refresh_plot(current_graph)
         else:
             messagebox.showwarning("Error", "File not found or invalid format.")
         return None
@@ -91,24 +161,46 @@ def InterfaceGraph():
         a = LoadAirlineData('Cat_nav.txt', 'Cat_seg.txt', 'Cat_aer.txt')
         g = GetGraph(a)
         current_graph = g
-        if Graph:
-            if canvas_widget:
-                canvas_widget.destroy()
-        
-            fig = Plot(current_graph, is_geographic=True)
-            canvas = FigureCanvasTkAgg(fig, master=right_frame)
-            canvas.draw()
-            canvas_widget = canvas.get_tk_widget()
-            canvas_widget.pack(fill=tk.BOTH, expand=True)
+        texto_var.set("This is the airspace of Catalonia!!!1! :D\nClick on a node to see its neighbors.")
+        if current_graph:
+            refresh_plot(current_graph, is_geographic=True)
+        else:
+            messagebox.showwarning("Error", "File not found or invalid format.")
+        return None
+    
+    def loadEu():
+        nonlocal current_graph
+        nonlocal canvas_widget
+
+        a = LoadAirlineData('ECAC_nav.txt', 'ECAC_seg.txt', 'ECAC_aer.txt')
+        g = GetGraph(a)
+        current_graph = g
+        texto_var.set("This is the airspace of Europe!!!1! :D\nClick on a node to see its neighbors.")
+        if current_graph:
+            refresh_plot(current_graph, is_geographic=True)
+        else:
+            messagebox.showwarning("Error", "File not found or invalid format.")
+        return None
+    
+    def loadEsp():
+        nonlocal current_graph
+        nonlocal canvas_widget
+
+        a = LoadAirlineData('Spain_nav.txt', 'Spain_seg.txt', 'Spain_aer.txt')
+        g = GetGraph(a)
+        current_graph = g
+        texto_var.set("This is the airspace of Spain!!!1! :D\nClick on a node to see its neighbors.")
+        if current_graph:
+            refresh_plot(current_graph, is_geographic=True)
         else:
             messagebox.showwarning("Error", "File not found or invalid format.")
         return None
     
     def save_file():
         nonlocal current_graph
-        file_name = simpledialog.askstring('Save File', 'File Name:')
+        file_name = simpledialog.askstring('Save File', 'How do you want to save the graph?')
         if file_name:
-            SaveGraph(current_graph, file_name)
+            SaveGraph(current_graph, file_name=f'{file_name}.txt')
             messagebox.showinfo("Success", "Graph saved successfully.")
         return None
     
@@ -131,12 +223,7 @@ def InterfaceGraph():
                 y = float(information[2])
                 info_node = Node(information[0], x, y)
                 AddNode(current_graph, info_node)
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)            
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
+                refresh_plot(current_graph)
         else:
             current_graph = Graph()
             repeated = False
@@ -150,12 +237,7 @@ def InterfaceGraph():
             else:
                 info_node = Node(information[0], information[1], information[2])
                 AddNode(current_graph, info_node)
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)            
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
+                refresh_plot(current_graph)
 
     def del_node_button():
         nonlocal current_graph
@@ -165,7 +247,6 @@ def InterfaceGraph():
         if current_graph:
             information = entry.get()
             delete_segments = []
-            found = False
             try:
                 for nodeingraph in current_graph.node:
                     if nodeingraph.name == information:
@@ -175,14 +256,8 @@ def InterfaceGraph():
                         for to_delete in delete_segments:
                             DeleteSegment(current_graph, to_delete)
 
-                        DeleteNode(current_graph, nodeingraph)
-                        if canvas_widget:
-                            canvas_widget.destroy()
-                        canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)
-                        canvas.draw()
-                        canvas_widget = canvas.get_tk_widget()
-                        canvas_widget.pack(fill=tk.BOTH, expand=True)
-                        found = True
+                        DeleteNode(current_graph, information)
+                        refresh_plot(current_graph)
                         break
             except:
                 messagebox.showwarning("Error", "Node not found.")
@@ -213,14 +288,8 @@ def InterfaceGraph():
                         if nodeingraph.name == information[2]:
                             founded_node2 = nodeingraph
                     if founded_node1 and founded_node2:
-                        infosegment = Segment(information[0], founded_node1, founded_node2)
                         AddSegment(current_graph, information[0], founded_node1.name, founded_node2.name)
-                        if canvas_widget:
-                            canvas_widget.destroy()
-                        canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)
-                        canvas.draw()
-                        canvas_widget = canvas.get_tk_widget()
-                        canvas_widget.pack(fill=tk.BOTH, expand=True)
+                        refresh_plot(current_graph)
                     else:
                         messagebox.showwarning("Error", "Node not found.")
                 except:
@@ -242,170 +311,29 @@ def InterfaceGraph():
             
             if found:
                 DeleteSegment(current_graph, information)
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
+                refresh_plot(current_graph)
             else:
                 messagebox.showwarning('ERROR', 'It doesn\'t exist a segment with that name.')
         else:
             messagebox.showwarning("Error", "No graph loaded.")
     
-    def new_fuction():
-        nonlocal current_graph
-        nonlocal new_entry
+    def new_graph():
         nonlocal canvas_widget
+        nonlocal current_graph
 
-        information = int(new_entry.get())
-        if current_graph:
-            if information > 0:
-                current_graph = Graph()
-                for i in range(information):
-                    node = Node(str(i), np.random.randint(1, 20), np.random.randint(1, 20))
-                    AddNode(current_graph, node)
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(Plot(current_graph), master = right_frame)
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
-            else:
-                messagebox.showwarning("Error", "Invalid number of nodes.")
-        else:
-            messagebox.showwarning("Error", "No graph loaded.")
+        current_graph = NewGraph(current_graph)
+
+        refresh_plot(current_graph)
     
-    def reachability_g():
-        nonlocal current_graph
-        nonlocal canvas_widget
-        
-        if not current_graph:
-            messagebox.showwarning("Error", "There is no graph loaded.")
-            return
-        
-        origin = simpledialog.askstring('Origin', 'Origin Node:')
-        if not origin:
-            return
-   
-        origin_node = None
-        for n in current_graph.node:
-            if n.name == origin:
-                origin_node = n
-                break
-        
-        if not origin_node:
-            messagebox.showwarning("Error", f"Node '{origin}' not found.")
-            return
-
-        reachable_nodes = Reachability(current_graph, origin)
-        
-        fig = PlotReachability(current_graph, reachable_nodes)
-        
-        if canvas_widget:
-            canvas_widget.destroy()
-        
-        canvas = FigureCanvasTkAgg(fig, master=right_frame)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True)
-        return None
-            
-    def generalview():
-        nonlocal current_graph
-        nonlocal canvas_widget
-
-        if current_graph:
-            if canvas_widget:
-                canvas_widget.destroy()
-            canvas = FigureCanvasTkAgg(Plot(current_graph), master= right_frame)
-            canvas.draw()
-            canvas_widget = canvas.get_tk_widget()
-            canvas_widget.pack(fill=tk.BOTH, expand=True)
-        else:
-            messagebox.showwarning("Error", "No graph loaded.")
-        return None
-
-    def findshortestpath_g():
-        nonlocal current_graph
-        nonlocal canvas_widget
-        
-        origin = simpledialog.askstring('Origin', 'Origin Node:')
-        destination = simpledialog.askstring('Destination', 'Destination Node:')
-        current_path = FindShortestPath(current_graph, origin, destination)
-        if current_path:
-            current_graph = PlotPath(current_graph, current_path)
-            if Graph:
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(current_graph, master= right_frame)
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
-        else: 
-            messagebox.showwarning("Error", "File not found or invalid format.")
-        return None
-
-    def reachability_a():
-        nonlocal current_graph
-        nonlocal canvas_widget
-        
-        if not current_graph:
-            messagebox.showwarning("Error", "There is no graph loaded.")
-            return
-        
-        origin = simpledialog.askstring('Origin', 'Origin Node:')
-        if not origin:
-            return
-   
-        origin_node = None
-        for n in current_graph.node:
-            if n.name == origin:
-                origin_node = n
-                break
-        
-        if not origin_node:
-            messagebox.showwarning("Error", f"Node '{origin}' not found.")
-            return
-
-        reachable_nodes = Reachability(current_graph, origin)
-        
-        fig = PlotReachability(current_graph, reachable_nodes, is_geographic=True)
-        
-        if canvas_widget:
-            canvas_widget.destroy()
-        
-        canvas = FigureCanvasTkAgg(fig, master=right_frame)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True)
-        return None
-    
-    def findshortestpath_a():
-        nonlocal current_graph
-        nonlocal canvas_widget
-        
-        origin = simpledialog.askstring('Origin', 'Origin Node:')
-        destination = simpledialog.askstring('Destination', 'Destination Node:')
-        current_path = FindShortestPath(current_graph, origin, destination)
-        if current_path:
-            current_graph = PlotPath(current_graph, current_path, is_geographic=True)
-            if Graph:
-                if canvas_widget:
-                    canvas_widget.destroy()
-                canvas = FigureCanvasTkAgg(current_graph, master= right_frame)
-                canvas.draw()
-                canvas_widget = canvas.get_tk_widget()
-                canvas_widget.pack(fill=tk.BOTH, expand=True)
-        else: 
-            messagebox.showwarning("Error", "File not found or invalid format.")
-        return None
     ####### base ######
     root = tk.Tk()
-    root.geometry('1200x800')
+    root.geometry('1200x600')
     root.title('Interface')
+    root['bg'] = "#d7f0f2"
     
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
-    root.columnconfigure(1, weight=3)
+    root.columnconfigure(1, weight=20)
 
     notebook_frame = ttk.Frame(root)
     notebook_frame.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
@@ -420,9 +348,9 @@ def InterfaceGraph():
     notebook = ttk.Notebook(notebook_frame)
     notebook.pack(expand=True, fill='both')
 
-    ######################################################
-    ##### Pestaña 1: interfaz original con graficos######
-    ######################################################
+    #############################################
+    ##### Pestaña 1: interfaz con graficos######
+    ############################################
 
     pest1 = ttk.Frame(notebook)
     notebook.add(pest1, text="Graph Interface")
@@ -431,51 +359,45 @@ def InterfaceGraph():
     left_frame_p1.pack(expand=True, fill='both')
 
     left_frame_p1.columnconfigure(0, weight=1)
-    left_frame_p1.rowconfigure(0, weight=1)
-    left_frame_p1.rowconfigure(1, weight=1)
-    left_frame_p1.rowconfigure(2, weight=2)
-    left_frame_p1.rowconfigure(3, weight=2)
-    left_frame_p1.rowconfigure(4, weight=2)
-
+    left_frame_p1.rowconfigure(0, weight=2)
+    left_frame_p1.rowconfigure(1, weight=2)
+    left_frame_p1.rowconfigure(2, weight=4)
+    left_frame_p1.rowconfigure(3, weight=1)
+    
     #EXAMPLE BUTTON
     randomframe = tk.LabelFrame(left_frame_p1)
     randomframe.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    randomframe.rowconfigure(0, weight=1)
     randomframe.columnconfigure(0, weight=1)
     randomframe.columnconfigure(1, weight=1)
 
     examplebutton = tk.Button(randomframe, text='Example', command=lambda: show_example())
     examplebutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    generalviewbutton = tk.Button(randomframe, text='General View', command=lambda: generalview())
-    generalviewbutton.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-
-    #PATH BUTTON
-    pathframe = tk.LabelFrame(left_frame_p1, text = 'Path')
-    pathframe.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-    pathframe.columnconfigure(0, weight=1)
-    pathframe.columnconfigure(1, weight=1)
-
-    reachabilitybutton = tk.Button(pathframe, text='Reachability', command=lambda: reachability_g())
-    reachabilitybutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-    shortestpathbutton = tk.Button(pathframe, text='Shortest Path', command=lambda: findshortestpath_g())
-    shortestpathbutton.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    interruptor = tk.Checkbutton(randomframe, text='Reachability Mode', 
+                                 indicatoron=False,width=15,height=1, selectcolor="#90BE6D", command=lambda: set_reachability_mode_g())
+    interruptor.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     #FILES BUTTONS
     filesframe = tk.LabelFrame(left_frame_p1, text = 'Files')
-    filesframe.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-    filesframe.columnconfigure(0, weight=1)
+    filesframe.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
     filesframe.rowconfigure(0, weight=1)
-    filesframe.rowconfigure(1, weight=1)
+    filesframe.columnconfigure(0, weight=1)
+    filesframe.columnconfigure(1, weight=1)
+    filesframe.columnconfigure(2, weight=1)
 
     uploadbutton = tk.Button(filesframe, text='Load', command=lambda: load_file())
     uploadbutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     savebutton = tk.Button(filesframe, text='Save', command=lambda: save_file())
-    savebutton.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    savebutton.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+
+    newbutton = tk.Button(filesframe, text='New Graph', command=lambda: new_graph())
+    newbutton.grid(row=0, column=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     #EDIT BUTTONS
     editframe = tk.LabelFrame(left_frame_p1, text = 'Edit')
-    editframe.grid(row=3, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    editframe.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     editframe.columnconfigure(0, weight=1)
     editframe.columnconfigure(1, weight=1)
@@ -485,33 +407,41 @@ def InterfaceGraph():
 
     addnodebutton = tk.Button(editframe, text='Add Node', command=lambda: add_node_button())
     addnodebutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    Tooltip(addnodebutton, "Press to add a node.\nFormat: Name X Y (e.g., A 10 20)")
 
     delnodebutton = tk.Button(editframe, text='Delete Node', command=lambda: del_node_button())
     delnodebutton.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    Tooltip(delnodebutton, "Press to delete a node.\nFormat: Name (e.g., A)")
 
     addsegmentbutton = tk.Button(editframe, text='Add Segment', command=lambda: add_segment_button())
     addsegmentbutton.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    Tooltip(addsegmentbutton, "Press to add a segment.\nFormat: Name Node1 Node2 (e.g., AB A B)")
 
     delsegmentbutton = tk.Button(editframe, text='Delete Segment', command=lambda: del_segment_button())
     delsegmentbutton.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    Tooltip(delsegmentbutton, "Press to delete a segment.\nFormat: Name (e.g., AB)")
 
     entry = tk.Entry(editframe)
-    entry.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    entry.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    #NEW FUNCTION BUTTON
-    newframe = tk.LabelFrame(left_frame_p1, text = 'New Function')
-    newframe.grid(row=4, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    #CLIPPY :D
+    info_frame = ttk.Frame(left_frame_p1)
+    info_frame.grid(row=3, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    newframe.columnconfigure(0, weight=1)
-    newframe.rowconfigure(0, weight=1)
-    newframe.rowconfigure(1, weight=1)
+    texto_var = tk.StringVar()
+    texto_var.set("Hiiiii!\nLoad a graph/airspace to get started :D")
 
-    newbutton = tk.Button(newframe, text='New Graph', command=lambda: new_fuction())
-    newbutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    original = Image.open('clippy.png')
+    resized = original.resize((140, 140), Image.Resampling.LANCZOS)
+    clippy = ImageTk.PhotoImage(resized)
 
-    new_entry = tk.Entry(newframe)
-    new_entry.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    imagen = tk.Label(info_frame, image = clippy)
+    imagen.image = clippy
+    imagen.pack(side='left', padx = 5)
+    texto_label = tk.Label(info_frame, textvariable=texto_var, wraplength=300, anchor = 'w',  font=("Comic Sans MS", 12))
+    texto_label.pack(side="left", padx=5, pady=5, fill='both', expand=True)
 
+    
     ######################################################
     ##### Pestaña 2: interfaz con nodos de cat, esp, eu###
     ######################################################
@@ -523,20 +453,22 @@ def InterfaceGraph():
     left_frame_p2.pack(expand=True, fill='both')
 
     left_frame_p2.columnconfigure(0, weight=1)
-    left_frame_p2.rowconfigure(0, weight=1)
-    left_frame_p2.rowconfigure(1, weight=3)
+    left_frame_p2.rowconfigure(0, weight=2)
+    left_frame_p2.rowconfigure(1, weight=4)
+    left_frame_p2.rowconfigure(2, weight=1)
 
     #Path buttons
     pathframe = tk.LabelFrame(left_frame_p2, text = 'Path')
     pathframe.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-
+    pathframe.rowconfigure(0, weight=1)
     pathframe.columnconfigure(0, weight=1)
     pathframe.columnconfigure(1, weight=1)
 
-    reachabilitybutton = tk.Button(pathframe, text='Reachability', command=lambda: reachability_a())
-    reachabilitybutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
-    shortestpathbutton = tk.Button(pathframe, text='Shortest Path', command=lambda: findshortestpath_a())
-    shortestpathbutton.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    interruptor = tk.Checkbutton(pathframe, text='Reachability Mode', 
+                                 indicatoron=False,width=15,height=1, selectcolor="#90BE6D", command=lambda: set_reachability_mode_a())
+    interruptor.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+    googleEarth = tk.Button(pathframe, text='Save as KML', command=lambda: export_to_kml())
+    googleEarth.grid(row=0, column=1, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
     #Files buttons
     filesframe = tk.LabelFrame(left_frame_p2, text = 'Files')
@@ -550,11 +482,27 @@ def InterfaceGraph():
     catbutton = tk.Button(filesframe, text='Load Cat', command=lambda: loadCat())
     catbutton.grid(row=0, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    espbutton = tk.Button(filesframe, text='Load Esp', command=lambda: messagebox.showwarning("Error", "Not implemented yet."))
+    espbutton = tk.Button(filesframe, text='Load Esp', command=lambda: loadEsp())
     espbutton.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    eubutton = tk.Button(filesframe, text='Load Eu', command=lambda: messagebox.showwarning("Error", "Not implemented yet."))
+    eubutton = tk.Button(filesframe, text='Load Eu', command=lambda: loadEu())
     eubutton.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
+    #CLIPPY :D
+    info_frame = ttk.Frame(left_frame_p2)
+    info_frame.grid(row=3, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
+
+    original = Image.open('clippy.png')
+    resized = original.resize((140, 140), Image.Resampling.LANCZOS)
+    clippy = ImageTk.PhotoImage(resized)
+
+    imagen = tk.Label(info_frame, image = clippy)
+    imagen.image = clippy
+    imagen.pack(side='left', padx = 5)
+    texto_label = tk.Label(info_frame, textvariable=texto_var, wraplength=300, anchor = 'w',  font=("Comic Sans MS", 12))
+    texto_label.pack(side="left", padx=5, pady=5, fill='both', expand=True)
+
     root.mainloop()
-InterfaceGraph()
+
+if __name__ == "__main__":
+    InterfaceGraph()

@@ -18,19 +18,6 @@ def AddNode (g, n):
     g.node.append(n)
     return True
 
-def DetectEntry (entryNode):
-    text = entryNode.replace(',', ' ')
-    partes = text.split(' ')
-    if len(partes) == 3:
-        if partes[1].isdigit():
-            name = partes[0]
-            x = float(partes[1])
-            y = float(partes[2])
-            d = Node(name, x, y)
-        elif partes[1].isalpha():
-            d = [partes[0], partes[1], partes[2]]
-    return d
-
 def DeleteSegment (g, s):
     newsegments = []
     for d in g.segment:
@@ -70,20 +57,25 @@ def AddSegment (g, segmentName, nameOriginNode, nameDestinationNode):
     else:
         return False
     
-def GetClosest (g, x, y):
-    point = Node ('p', x, y)
-    closest = g.node[0]
-    min_dist = Distance(closest, point)
-    for n in g.node[1:]:
-        d = Distance(n, point)
-        if d < min_dist:
-            closest = n
-            min_dist = d
+def GetClosest(g, x, y):
+    point = Node('p', x, y)
+    closest = None
+    min_dist = float('inf')
+    for n in g.node:
+        if n != point:
+            d = Distance(n, point)
+            if d < min_dist:
+                closest = n
+                min_dist = d
     return closest
 
-def Plot(g, is_geographic=False):
+def Plot(g, is_geographic=False, reacMode=False):
+    gnodes = []
+    gsegments = []
     fig, ax = plt.subplots(figsize=(12, 8))
     current_node = None
+    reach_node = None
+    last_random_click = None
     
     if is_geographic:
         head_size = 0.05
@@ -98,9 +90,24 @@ def Plot(g, is_geographic=False):
     
     def draw_full_graph():
         ax.clear()
+        gnodes.clear()
+        gsegments.clear()
+
+        try:
+            gnodes.extend(g.node)
+            gsegments.extend(g.segment)
+        except AttributeError:
+            print("Graph does not have 'node' or 'segment' attributes.")
+            return
         
         for n in g.node:
-            color = 'blue' if n == current_node else 'red'
+            if n == current_node:
+                color = 'blue'
+            else:
+                if n.type == 'airport':
+                    color = 'orange'
+                else:
+                    color = 'green'
             ax.plot(n.x, n.y, 'o', color=color, markersize=node_size)
             ax.text(n.x, n.y, f'{n.name}', fontsize=font_size, color='black',
                    ha='center', va='center')
@@ -136,17 +143,24 @@ def Plot(g, is_geographic=False):
         ax.set_ylabel("Latitude" if is_geographic else "Y")
         ax.set_title("Airspace Network" if is_geographic else "Graph View")
 
-    def draw_node_view(node):
+    def PlotNode(node):
         ax.clear()
+        gnodes.clear()
+        gsegments.clear()
+        
+        gnodes.append(node)
 
-        ax.plot(node.x, node.y, 'o', color='blue', markersize=node_size*1.5)
+        ax.plot(node.x, node.y, 'o', color='red', markersize=node_size*1.5)
         ax.text(node.x, node.y, f'{node.name}', fontsize=font_size+1, 
                color='black', ha='center', va='center', weight='bold')
         
         for s in g.segment:
             if s.origin.name == node.name:
+                gsegments.append(s)
+                gnodes.append(s.destination)
+                c = 'orange' if node.type == 'airport' else 'green'
                 ax.plot(s.destination.x, s.destination.y, 'o', 
-                       color='green', markersize=node_size)
+                       color=c , markersize=node_size)
                 ax.text(s.destination.x, s.destination.y, f'{s.destination.name}', 
                        fontsize=font_size, color='black', ha='center', va='center')
                 
@@ -156,7 +170,7 @@ def Plot(g, is_geographic=False):
                         dx, dy,
                         head_width=head_size, 
                         head_length=head_size*1.5,
-                        fc='red', ec='red', 
+                        fc='blue', ec='blue', 
                         linewidth=0.5,
                         length_includes_head=True,
                         alpha=0.8)
@@ -177,9 +191,177 @@ def Plot(g, is_geographic=False):
         ax.set_xlabel("Longitude" if is_geographic else "X")
         ax.set_ylabel("Latitude" if is_geographic else "Y")
         ax.set_title(f"Connections from {node.name}")
+    
+    def PlotReachability(node):
+        ax.clear()
+        gnodes.clear()
+        gsegments.clear()
+
+        lista = Reachability(g, node.name)
+        origin = lista[0]
+        
+        if is_geographic:
+            head_size = 0.05
+            node_size_main = 5
+            node_size_secondary = 3
+            font_size = 7
+        else:
+            head_size = 0.2
+            node_size_main = 8
+            node_size_secondary = 5
+            font_size = 8
+        
+        for n in g.node:
+            if n == origin:
+                gnodes.append(n)
+                ax.plot(n.x, n.y, 'o', color='red', markersize=node_size_main)
+                ax.text(n.x, n.y, f'{n.name}', fontsize=font_size+1, color='black', 
+                    ha='center', va='center', weight='bold')
+            elif n in lista:
+                gnodes.append(n)
+                c = 'orange' if n.type == 'airport' else 'green'
+                ax.plot(n.x, n.y, 'o', color=c, markersize=node_size_main)
+                ax.text(n.x, n.y, f'{n.name}', fontsize=font_size, color='black',
+                    ha='center', va='center')
+            else:
+                ax.plot(n.x, n.y, 'o', color='gray', markersize=node_size_secondary, alpha=0.5)
+                ax.text(n.x, n.y, f'{n.name}', fontsize=font_size-1, color='gray',
+                    ha='center', va='center', alpha=0.7)
+        
+        for s in g.segment:
+            if s.origin in lista and s.destination in lista:
+                gsegments.append(s)
+                ax.arrow(s.origin.x, s.origin.y, 
+                        s.destination.x - s.origin.x, 
+                        s.destination.y - s.origin.y,
+                        head_width=head_size, 
+                        head_length=head_size*1.5,
+                        fc='blue', ec='blue', 
+                        linewidth=0.7, 
+                        length_includes_head=True,
+                        alpha=0.8)
+                
+                midx = (s.origin.x + s.destination.x)/2
+                midy = (s.origin.y + s.destination.y)/2
+                ax.text(midx, midy, f'{s.cost:.1f} km', 
+                    fontsize=font_size, weight='bold',
+                    ha='center', va='center')
+            else:
+                ax.plot([s.origin.x, s.destination.x],
+                    [s.origin.y, s.destination.y],
+                    'gray', linewidth=0.3, alpha=0.3)
+        
+        ax.grid(color='gray', linestyle='dashed', linewidth=0.3, alpha=0.5)
+        ax.set_xlabel("Longitude" if is_geographic else "X")
+        ax.set_ylabel("Latitude" if is_geographic else "Y")
+        ax.set_title(f"Reachable Nodes from {origin.name} (Total: {len(lista)})")
+
+    def PlotShortestPath(origin, destination):
+        ax.clear()
+        gnodes.clear()
+        gsegments.clear()
+
+        if is_geographic:
+            node_size_main = 5
+            node_size_secondary = 3
+            path_width = 1.5
+        else:
+            node_size_main = 8
+            node_size_secondary = 5
+            path_width = 2
+        
+        p = FindShortestPath(g, origin.name, destination.name)
+
+        for n in g.node:
+            if n in p.nodes:
+                gnodes.append(n)
+                c = 'orange' if n.type == 'airport' else 'blue'
+                ax.plot(n.x, n.y, 'o', color=c, markersize=node_size_main)
+                ax.text(n.x, n.y, f'{n.name}', fontsize=font_size+1, color='black',
+                    ha='center', va='center', weight='bold')
+            else:
+                ax.plot(n.x, n.y, 'o', color='gray', markersize=node_size_secondary, alpha=0.5)
+                ax.text(n.x, n.y, f'{n.name}', fontsize=font_size-1, color='gray',
+                    ha='center', va='center', alpha=0.7)
+        
+        for s in g.segment:
+            ax.plot([s.origin.x, s.destination.x],
+                [s.origin.y, s.destination.y],
+                'gray', linewidth=0.3, alpha=0.3)
+        
+        for i in range(len(p.nodes) - 1):
+            origin = p.nodes[i]
+            destination = p.nodes[i+1]
+            
+            segment = None
+            for s in g.segment:
+                if (s.origin == origin and s.destination == destination) or \
+                (s.origin == destination and s.destination == origin):
+                    segment = s
+                    break
+            
+            if segment:
+                gsegments.append(segment)
+                ax.arrow(origin.x, origin.y, 
+                        destination.x - origin.x, 
+                        destination.y - origin.y,
+                        head_width=head_size, 
+                        head_length=head_size*1.5,
+                        fc='blue', ec='blue', 
+                        linewidth=path_width, 
+                        length_includes_head=True,
+                        alpha=0.8)
+                
+
+                midx = (origin.x + destination.x)/2
+                midy = (origin.y + destination.y)/2
+                ax.text(midx, midy, f'{segment.cost:.1f} km', 
+                    fontsize=font_size, weight='bold',
+                    ha='center', va='center', color='blue')
+        
+        ax.grid(color='gray', linestyle='dashed', linewidth=0.3, alpha=0.5)
+        ax.set_xlabel("Longitude" if is_geographic else "X")
+        ax.set_ylabel("Latitude" if is_geographic else "Y")
+        ax.set_title(f"Shortest Path Visualization - Total Cost: {round(p.cost, 2)} km")
+
+    def PlotGetClosest(x, y):
+        ax.clear()
+        gnodes.clear()
+        gsegments.clear()
+
+        if is_geographic:
+            return
+
+        if is_geographic:
+            node_size_main = 5
+            node_size_secondary = 3
+            path_width = 1.5
+        else:
+            node_size_main = 8
+            node_size_secondary = 5
+            path_width = 2
+        
+        closest = GetClosest(g, x, y)
+        gnodes.append(closest)
+        gnodes.append(Node('p', x, y))  # Punto de clic
+        gsegments.append(Segment('closest', closest, Node('p', x, y)))
+
+        print(closest.name)
+        for n in g.node:
+            if n == closest:
+                ax.plot(n.x, n.y, 'o', color='orange', markersize=node_size_main)
+            else:
+                ax.plot(n.x, n.y, 'o', color='gray', markersize=node_size_secondary, alpha=0.5)
+
+        ax.plot(x, y, 'x', color='red', markersize=12)  # marcar donde hiciste click
+
+        ax.grid(color='gray', linestyle='dashed', linewidth=0.3, alpha=0.5)
+        ax.set_xlabel("Longitude" if is_geographic else "X")
+        ax.set_ylabel("Latitude" if is_geographic else "Y")
+        ax.set_title(f"Closest Point: {closest.name}")
 
     def on_click(event):
-        nonlocal current_node
+        nonlocal current_node, reach_node, last_random_click
         if event.xdata is None or event.ydata is None:
             return
         
@@ -193,56 +375,50 @@ def Plot(g, is_geographic=False):
             if dist < min_dist and dist < tolerance**2:
                 min_dist = dist
                 clicked_node = n
-        
+
         if clicked_node:
-            if current_node == clicked_node:
-                current_node = None
-                draw_full_graph()
+            last_random_click = None
+            if reacMode:
+                if reach_node is None:
+                    reach_node = clicked_node
+                    current_node = clicked_node
+                    PlotReachability(reach_node)
+                elif clicked_node == reach_node:
+                    reach_node = None
+                    current_node = None
+                    draw_full_graph()
+                elif clicked_node == current_node:
+                    current_node = reach_node
+                    PlotReachability(reach_node)
+                else:
+                    try:
+                        PlotShortestPath(reach_node, clicked_node)
+                        current_node = clicked_node
+                    except Exception as e:
+                        draw_full_graph()
+                        current_node = None
+                        reach_node = None
             else:
-                current_node = clicked_node
-                draw_node_view(current_node)
-            
-            fig.canvas.draw()
+                if current_node == clicked_node:
+                    current_node = None
+                    draw_full_graph()
+                else:
+                    current_node = clicked_node
+                    PlotNode(current_node)
+        else:
+            if not is_geographic and not reacMode:
+                if last_random_click is None:
+                    last_random_click = (event.xdata, event.ydata)
+                    PlotGetClosest(event.xdata, event.ydata)
+                else:
+                    last_random_click = None
+                    draw_full_graph()
+        fig.canvas.draw()
 
     draw_full_graph()
     fig.canvas.mpl_connect('button_press_event', on_click)
     
-    return fig
-
-def PlotNode(g, nameOrigin):
-    fig, ax = plt.subplots()
-    found = False
-    origin = None
-
-    for n in g.node:
-        if n.name == nameOrigin:
-            origin = n
-            ax.plot(n.x, n.y, 'o', color='blue', markersize=5)
-            ax.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
-            found = True
-            break
-    if found == False:
-        return False
-    
-    for s in g.segment:
-        if s.origin.name == nameOrigin:
-            ax.plot(s.destination.x, s.destination.y, 'o', color = 'green', markersize = 3)
-            ax.text(s.destination.x, s.destination.y, f'{s.destination.name}', fontsize=8, color='black')
-            ax.arrow(s.origin.x, s.origin.y, s.destination.x - s.origin.x, s.destination.y - s.origin.y, head_width=0.2, head_length=0.3, fc='red', ec='red', linewidth=0.5, length_includes_head=True)
-            midx = (s.origin.x + s.destination.x) / 2
-            midy = (s.origin.y + s.destination.y) / 2
-            ax.text(midx, midy, f'{s.cost} km', fontsize=7, weight='bold')
-    
-    for n in g.node:
-        for neighbor in origin.neighbors:
-            if n != neighbor:
-                ax.plot(n.x, n.y, 'o', color='gray', markersize=3)
-                ax.text(n.x, n.y, f'{n.name}', fontsize=8, color='black')
-
-    ax.grid(color='grey', linestyle='dashed', linewidth=0.5)
-    ax.xlabel("X")
-    ax.ylabel("Y")
-    return fig
+    return fig, gnodes, gsegments
 
 def LoadFile (fileName):
     X = open(fileName, 'r')
@@ -324,64 +500,6 @@ def Reachability(g, startNodeName):
         i += 1
     return lista
 
-def PlotReachability(g, lista, is_geographic=False):
-    origin = lista[0]
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    if is_geographic:
-        head_size = 0.05
-        node_size_main = 5
-        node_size_secondary = 3
-        font_size = 7
-    else:
-        head_size = 0.2
-        node_size_main = 8
-        node_size_secondary = 5
-        font_size = 8
-    
-    for n in g.node:
-        if n == origin:
-            ax.plot(n.x, n.y, 'o', color='blue', markersize=node_size_main)
-            ax.text(n.x, n.y, f'{n.name}', fontsize=font_size+1, color='black', 
-                   ha='center', va='center', weight='bold')
-        elif n in lista:
-            ax.plot(n.x, n.y, 'o', color='red', markersize=node_size_main)
-            ax.text(n.x, n.y, f'{n.name}', fontsize=font_size, color='black',
-                   ha='center', va='center')
-        else:
-            ax.plot(n.x, n.y, 'o', color='gray', markersize=node_size_secondary, alpha=0.5)
-            ax.text(n.x, n.y, f'{n.name}', fontsize=font_size-1, color='gray',
-                   ha='center', va='center', alpha=0.7)
-    
-    for s in g.segment:
-        if s.origin in lista and s.destination in lista:
-            ax.arrow(s.origin.x, s.origin.y, 
-                    s.destination.x - s.origin.x, 
-                    s.destination.y - s.origin.y,
-                    head_width=head_size, 
-                    head_length=head_size*1.5,
-                    fc='red', ec='red', 
-                    linewidth=0.7, 
-                    length_includes_head=True,
-                    alpha=0.8)
-            
-            midx = (s.origin.x + s.destination.x)/2
-            midy = (s.origin.y + s.destination.y)/2
-            ax.text(midx, midy, f'{s.cost:.1f} km', 
-                   fontsize=font_size, weight='bold',
-                   ha='center', va='center')
-        else:
-            ax.plot([s.origin.x, s.destination.x],
-                   [s.origin.y, s.destination.y],
-                   'gray', linewidth=0.3, alpha=0.3)
-    
-    ax.grid(color='gray', linestyle='dashed', linewidth=0.3, alpha=0.5)
-    ax.set_xlabel("Longitude" if is_geographic else "X")
-    ax.set_ylabel("Latitude" if is_geographic else "Y")
-    ax.set_title(f"Reachable Nodes from {origin.name} (Total: {len(lista)})")
-    
-    return fig
-
 def FindShortestPath (g, originName, destinationName):
     alcanzables = Reachability(g, originName)
     destination = None
@@ -439,3 +557,4 @@ def FindShortestPath (g, originName, destinationName):
                     caminos_posibles.append(nuevo_camino)
                     costes_acumulados.append(coste_actual + coste_segmento)
     return None
+

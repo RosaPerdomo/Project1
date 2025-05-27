@@ -63,7 +63,12 @@ def GetGraph(airspace):
     
     # crear nodos
     for p in airspace.navpoints:
-        AddNode(g, Node(p.name, p.longitude, p.latitude))
+        n = Node(p.name, p.longitude, p.latitude)
+        for a in airspace.navairports:
+            if a.name == p.name:
+                n.type = 'airport'
+                break
+        AddNode(g, n)
     
     # crear segmentos
     for s in airspace.navsegments:
