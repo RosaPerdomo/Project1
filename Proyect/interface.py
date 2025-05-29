@@ -228,7 +228,7 @@ def InterfaceGraph():
         nonlocal current_graph
         nonlocal canvas_widget
 
-        a = LoadAirlineData('Cat_nav.txt', 'Cat_seg.txt', 'Cat_aer.txt')
+        a = LoadAirlineData('cat/Cat_nav.txt', 'cat/Cat_seg.txt', 'cat/Cat_aer.txt')
         g = GetGraph(a)
         current_graph = g
         texto_var.set("This is the airspace of Catalonia!!!1! :D\nClick on a node to see its neighbors.")
@@ -244,7 +244,7 @@ def InterfaceGraph():
         nonlocal current_graph
         nonlocal canvas_widget
 
-        a = LoadAirlineData('ECAC_nav.txt', 'ECAC_seg.txt', 'ECAC_aer.txt')
+        a = LoadAirlineData('eu/ECAC_nav.txt', 'eu/ECAC_seg.txt', 'eu/ECAC_aer.txt')
         g = GetGraph(a)
         current_graph = g
         texto_var.set("This is the airspace of Europe!!!1! :D\nClick on a node to see its neighbors.")
@@ -260,7 +260,7 @@ def InterfaceGraph():
         nonlocal current_graph
         nonlocal canvas_widget
 
-        a = LoadAirlineData('Spain_nav.txt', 'Spain_seg.txt', 'Spain_aer.txt')
+        a = LoadAirlineData('spain/Spain_nav.txt', 'spain/Spain_seg.txt', 'spain/Spain_aer.txt')
         g = GetGraph(a)
         current_graph = g
         texto_var.set("This is the airspace of Spain!!!1! :D\nClick on a node to see its neighbors.")
@@ -427,17 +427,14 @@ def InterfaceGraph():
         popup.title("Super Developers")
         popup.configure(bg="white")
 
-        imagen = Image.open("Grup 10.png")
+        imagen = Image.open("imagenes/Grup 10.png")
         imagen = imagen.resize((800, 400))
         sound('rickroll')
         foto = ImageTk.PhotoImage(imagen)
 
         label = tk.Label(popup, image=foto, bg="white")
-        label.image = foto  # Guardar referencia para evitar que se borre
+        label.image = foto  # guardar referencia para evitar que se borre
         label.pack(padx=10, pady=10)
-
-        cerrar_btn = tk.Button(popup, text="Close", command=popup.destroy)
-        cerrar_btn.pack(pady=(0, 10))
     
     # sound functions
 
@@ -676,7 +673,7 @@ def InterfaceGraph():
     texto_var = tk.StringVar()
     texto_var.set("Hiiiii!\nLoad a graph/airspace to get started :D")
 
-    original = Image.open('clippy.png')
+    original = Image.open('imagenes/clippy.png')
     resized = original.resize((100, 100), Image.Resampling.LANCZOS)
     clippy = ImageTk.PhotoImage(resized)
 
@@ -737,7 +734,7 @@ def InterfaceGraph():
     info_frame = ttk.Frame(left_frame_p2)
     info_frame.grid(row=3, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    original = Image.open('clippy.png')
+    original = Image.open('imagenes/clippy.png')
     resized = original.resize((100, 100), Image.Resampling.LANCZOS)
     clippy = ImageTk.PhotoImage(resized)
 
@@ -795,7 +792,7 @@ def InterfaceGraph():
     info_frame = ttk.Frame(left_frame_p3)
     info_frame.grid(row=2, column=0, padx=5, pady=5, sticky=tk.N + tk.E + tk.W + tk.S)
 
-    original = Image.open('clippy.png')
+    original = Image.open('imagenes/clippy.png')
     resized = original.resize((100, 100), Image.Resampling.LANCZOS)
     clippy = ImageTk.PhotoImage(resized)
 
