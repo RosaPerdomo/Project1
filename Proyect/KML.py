@@ -36,9 +36,7 @@ def GraphToKMLFAIL(g, filename='Graph.kml'):
             os.startfile(os.path.abspath(filename))
     except Exception as e:
         print('Error!')
-
-
-def PathToKML(g,p,filename='Path.kml'):
+def PathToKMLFAIL(g,p,filename='Path.kml'):
     with open(filename, 'w') as X:
         X.write("<kml xmlns='http://www.opengis.net/kml/2.2'>\n")
         X.write('<Document>\n')
@@ -80,7 +78,7 @@ def PathToKML(g,p,filename='Path.kml'):
     except Exception as e:
         print('Error!')
 
-def GraphToKML(gnodes, gsegments, filename='Graph.kml'):
+def GraphToKML(gnodes, gsegments, filename='Graph.kml'): ####EL BUENO
     with open(filename, 'w') as X:
         X.write("<kml xmlns='http://www.opengis.net/kml/2.2'>\n")
         X.write('<Document>\n')

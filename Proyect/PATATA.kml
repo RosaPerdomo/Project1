@@ -1,0 +1,68 @@
+<kml xmlns='http://www.opengis.net/kml/2.2'>
+<Document>
+<Placemark> <name>EBROX</name>
+<Point>
+<coordinates>
+1.2316666667,40.7086111111
+</coordinates>
+</Point>
+</Placemark>
+<Placemark> <name>LOTOS</name>
+<Point>
+<coordinates>
+1.0030555556,40.5497222222
+</coordinates>
+</Point>
+</Placemark>
+<Placemark> <name>MARTA</name>
+<Point>
+<coordinates>
+1.28,40.3547222222
+</coordinates>
+</Point>
+</Placemark>
+<Placemark> <name>TORDU</name>
+<Point>
+<coordinates>
+0.5883333333,40.2580555556
+</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<name>Route MARTA-EBROX</name>
+<LineString>
+<altitudeMode>clampToGround</altitudeMode>
+<extrude>1</extrude>
+<tessellate>1</tessellate>
+<coordinates>
+1.28,40.3547222222
+1.2316666667,40.7086111111
+</coordinates>
+</LineString>
+</Placemark>
+<Placemark>
+<name>Route EBROX-LOTOS</name>
+<LineString>
+<altitudeMode>clampToGround</altitudeMode>
+<extrude>1</extrude>
+<tessellate>1</tessellate>
+<coordinates>
+1.2316666667,40.7086111111
+1.0030555556,40.5497222222
+</coordinates>
+</LineString>
+</Placemark>
+<Placemark>
+<name>Route LOTOS-TORDU</name>
+<LineString>
+<altitudeMode>clampToGround</altitudeMode>
+<extrude>1</extrude>
+<tessellate>1</tessellate>
+<coordinates>
+1.0030555556,40.5497222222
+0.5883333333,40.2580555556
+</coordinates>
+</LineString>
+</Placemark>
+</Document>
+</kml>
